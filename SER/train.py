@@ -1,27 +1,22 @@
-import torch
-import numpy as np
-import wandb
 import argparse
+import os
+import sys
+
+import numpy as np
+import torch
 from torch.utils.data import DataLoader
-import sys, os
+
+import wandb
+
 sys.path.append(os.pardir)
-from sklearn.model_selection import KFold
 from distutils.util import strtobool
 
-from transformers import (
-    Wav2Vec2FeatureExtractor,
-    WavLMForSequenceClassification # Original WavLMModel
-)
+from modeling import AdaWavLMForSequenceClassification  # WavLM with Adapter
+from sklearn.model_selection import KFold
+from transformers import WavLMForSequenceClassification  # Original WavLMModel
+from transformers import Wav2Vec2FeatureExtractor
 
-from modeling import AdaWavLMForSequenceClassification # WavLM with Adapter
-
-
-from utils import (
-    IemocapDataset, 
-    Collator, 
-    train_model, 
-    fix_seed
-)
+from utils import Collator, IemocapDataset, fix_seed, train_model
 
 fix_seed(42)
 
@@ -133,7 +128,7 @@ def main():
         "model_config": model_config,
         "dataset": 'IEMOCAP_full',
         "epochs": 20,
-        "batch_size": 32,
+        "batch_size": 8,
         "learning_rate": learning_rate,
         "scheduler": {'type':'StepLR', 'step':10, 'gamma':0.1},
     }
@@ -153,6 +148,8 @@ def main():
 
     _emotions = {'ang': 0, 'hap': 1, 'exc': 1, 'sad': 2, 'neu':3}
     dataset = IemocapDataset(root='../data/IEMOCAP_full_release', script_impro=['script', 'impro'], emapping=_emotions)
+    # print lengh of dataset
+    print(f"length of data: {len(dataset)}")
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     ua = []
     wa = []
@@ -271,7 +268,7 @@ def main():
 
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=config['scheduler']['step'], gamma=config['scheduler']['gamma'])
 
-        outputs = train_model(model, extractor, dataloaders_dict, optimizer, scheduler, num_epochs, step_log=False, val_interval=args.val_interval)
+        outputs = train_model(model, extractor, dataloaders_dict, optimizer, scheduler, num_epochs, val_interval=1)
         model = outputs['model']
 
         if not args.train_encada and not args.train_encoder and not args.weighted_sum:        

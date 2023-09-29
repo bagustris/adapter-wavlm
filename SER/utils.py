@@ -1,11 +1,12 @@
 import os
+import random
+
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torchaudio
-import pandas as pd
-import numpy as np
 import wandb
-import random
 from tqdm.notebook import tqdm
 
 
@@ -63,16 +64,26 @@ class IemocapDataset(object):
         # Get session number, script/impro, speaker gender, utterance number
         data = [d + [d[2][4], d[2].split('_')[1], d[2][-4], d[2][-3:]] for d in data]
 
+        # print length of data
+        # print('Total number of utterances: {}'.format(len(data)))
+        
         # Create pandas dataframe
-        self.df = pd.DataFrame(data, columns=['start', 'end', 'file', 'emotion', 'activation', 'valence', 'dominance', 'session', 'script_impro', 'gender', 'utterance'], dtype=np.float32)
+    
+        self.df = pd.DataFrame(data, columns=['start', 'end', 'file', 'emotion', 'activation', 'valence', 'dominance', 'session', 'script_impro', 'gender', 'utterance'])
+
+        print(self.df.head())
 
         # Filter by emotions
         filtered_emotions = self.df['emotion'].isin(emotions)
         self.df = self.df[filtered_emotions]
 
+        # print(self.df.head())
+
         # Filter by sessions
-        filtered_sessions = self.df['session'].isin(sessions)
+        filtered_sessions = self.df['session'].astype(int).isin(sessions)
         self.df = self.df[filtered_sessions]
+
+        print(self.df.head())
 
         # Filter by script_impro
         filtered_script_impro = self.df['script_impro'].str.contains('|'.join(script_impro))
@@ -82,17 +93,22 @@ class IemocapDataset(object):
         filtered_genders = self.df['gender'].isin(genders)
         self.df = self.df[filtered_genders]
 
+        # print(self.df.head())
+
         # Reset indices
         self.df = self.df.reset_index()
 
+
         # Map emotion labels to numeric values
         if emapping is not None:
-            self.df['emotion'] = self.df['emotion'].map(emapping).astype(np.float32)
+            self.df['emotion'] = self.df['emotion'].map(emapping) #.astype(np.float32)
         else:
-            self.df['emotion'] = self.df['emotion'].map(self._emotions).astype(np.float32)
+            self.df['emotion'] = self.df['emotion'].map(self._emotions) #.astype(np.float32)
 
         # Map file to correct path w.r.t to root
         self.df['file'] = [os.path.join('Session' + file[4], 'sentences', 'wav', file[:-5], file + self._ext_audio) for file in self.df['file']]
+
+        # print(self.df.head())
 
     def __len__(self):
         return len(self.df)
@@ -202,6 +218,7 @@ def train_model(model, extractor, dataloaders_dict, optimizer, scheduler, num_ep
                             loss_log = loss.item()
                             del loss
                             if wandb_log:
+                                wandb.init()
                                 wandb.log({'train/loss':loss_log})
                         else:
                             for p, t in zip(preds, target):
