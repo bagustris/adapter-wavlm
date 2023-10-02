@@ -272,7 +272,7 @@ def main():
         model = outputs['model']
 
         if not args.train_encada and not args.train_encoder and not args.weighted_sum:        
-            weight = torch.nn.functional.softmax(model.module.wavlm.encoder.adapter_to_output_layer_weights.detach().cpu()).numpy()
+            weight = torch.nn.functional.softmax(model.wavlm.encoder.adapter_to_output_layer_weights.detach().cpu()).numpy()
             result = {k: weight[i] for i,k in enumerate(layer_names)}
             print(result, '\n')
 
