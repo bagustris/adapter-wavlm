@@ -15,10 +15,10 @@ You need to install packages necessary for running experiments. Please run the f
 pip install -r requirement.txt
 ```
 
-The following command provides an example of training in the proposed method. Please select task_name from ASV, ER, ASR, or IC.
+The following command provides an example of training in the proposed method. Please select task_name from SER.
 ```sh
 # ./run.sh task_name
-./run.sh ASR
+./run.sh SER
 ```
 
 # Experiment and Results

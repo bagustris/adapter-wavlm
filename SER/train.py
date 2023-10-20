@@ -12,7 +12,7 @@ sys.path.append(os.pardir)
 from distutils.util import strtobool
 
 from modeling import AdaWavLMForSequenceClassification  # WavLM with Adapter
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from transformers import WavLMForSequenceClassification  # Original WavLMModel
 from transformers import Wav2Vec2FeatureExtractor
 
@@ -150,12 +150,20 @@ def main():
     dataset = IemocapDataset(root='../data/IEMOCAP_full_release', script_impro=['script', 'impro'], emapping=_emotions)
     # print lengh of dataset
     print(f"length of data: {len(dataset)}")
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+    # Define the sessions you want to use for splitting
+    sessions = ['1', '2', '3', '4', '5']
+
+    kf = KFold(n_splits=len(sessions), shuffle=True, random_state=42)
+
     ua = []
     wa = []
-    for k, (train_indices, val_indices) in enumerate(kf.split(range(len(dataset)))):
-        print(f'Split: {k}')
 
+    for k, (train_sessions, test_sessions) in enumerate(kf.split(sessions)):
+        train_indices = dataset.df[dataset.df['session'].isin([sessions[i] for i in train_sessions])].index
+        val_indices = dataset.df[dataset.df['session'].isin([sessions[i] for i in test_sessions])].index
+
+        print(f'Split: {k}')
         train_dataset = torch.utils.data.Subset(dataset, train_indices)
         val_dataset = torch.utils.data.Subset(dataset, val_indices)
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=train_collator, num_workers=12, pin_memory=True)
@@ -272,7 +280,7 @@ def main():
         model = outputs['model']
 
         if not args.train_encada and not args.train_encoder and not args.weighted_sum:        
-            weight = torch.nn.functional.softmax(model.wavlm.encoder.adapter_to_output_layer_weights.detach().cpu()).numpy()
+            weight = torch.nn.functional.softmax(model.module.wavlm.encoder.adapter_to_output_layer_weights.detach().cpu()).numpy()
             result = {k: weight[i] for i,k in enumerate(layer_names)}
             print(result, '\n')
 

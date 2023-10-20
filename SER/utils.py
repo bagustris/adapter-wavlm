@@ -6,8 +6,9 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torchaudio
-import wandb
 from tqdm.notebook import tqdm
+
+import wandb
 
 
 def fix_seed(seed):
@@ -126,6 +127,7 @@ class IemocapDataset(object):
 
         sample = {
             'path': audio_name,
+            'session': self.df.loc[idx, 'session'],
             'waveform': waveform,
             'sample_rate': sample_rate,
             'emotion': emotion,
@@ -237,11 +239,8 @@ def train_model(model, extractor, dataloaders_dict, optimizer, scheduler, num_ep
                 if phase=='train':
                     if scheduler:
                         scheduler.step()
-                    print('Epoch {}/{} | {:^5} |  Loss: {:.4f} UA: {:.4f}'.format(epoch+1,
-                                                                                  num_epochs, 
-                                                                                  phase, 
-                                                                                  epoch_loss, 
-                                                                                  epoch_acc))
+                    print(
+                        f'Epoch {epoch+1}/{num_epochs} | {phase:^5} |  Loss: {epoch_loss:.4f} UA: {epoch_acc:.4f}')
                     if wandb_log:
                         wandb.log({'train/epoch':epoch+1,\
                                    'train/epoch_loss':epoch_loss, 
@@ -251,12 +250,8 @@ def train_model(model, extractor, dataloaders_dict, optimizer, scheduler, num_ep
                     val_ua.append(epoch_acc)
                     epoch_wacc = (class_corrects / target_counts).mean()
                     val_wa.append(epoch_wacc)
-                    print('Epoch {}/{} | {:^5} |  Loss: {:.4f} UA: {:.4f} WA: {:.4f}'.format(epoch+1,
-                                                                                             num_epochs, 
-                                                                                             phase, 
-                                                                                             epoch_loss, 
-                                                                                             epoch_acc, 
-                                                                                             epoch_wacc))
+                    print(
+                        f'Epoch {epoch+1}/{num_epochs} | {phase:^5} |  Loss: {epoch_loss:.4f} UA: {epoch_acc:.4f} WA: {epoch_wacc:.4f}')
                     if wandb_log:
                         wandb.log({'val/epoch':epoch+1,
                                    'val/epoch_loss':epoch_loss,

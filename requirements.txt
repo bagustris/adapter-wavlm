@@ -9,3 +9,4 @@ speechbrain
 tqdm==4.64.1
 wandb==0.12.21
 ipywidgets==8.1.1
+scikit-learn==1.3.1

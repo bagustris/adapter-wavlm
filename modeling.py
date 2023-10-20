@@ -1,35 +1,23 @@
+import math
+from typing import List, Optional, Tuple, Union
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-import math
-
-from transformers.models.wavlm.modeling_wavlm import (
-    WavLMAttention, 
-    WavLMFeedForward,
-    WavLMEncoderLayer, 
-    WavLMEncoderLayerStableLayerNorm, 
-    WavLMEncoder, 
-    WavLMEncoderStableLayerNorm,
-    WavLMFeatureEncoder,
-    WavLMPositionalConvEmbedding,
-    WavLMPreTrainedModel,
-    WavLMConfig,
-    WavLMModel,
-    WavLMForCTC,
-    WavLMForSequenceClassification,
-    WavLMForAudioFrameClassification,
-    WavLMForXVector,
-    AMSoftmaxLoss,
-    TDNNLayer,
-)
-from transformers.modeling_utils import PreTrainedModel
-from transformers.modeling_outputs import BaseModelOutput
+from torch.nn import CrossEntropyLoss
 from transformers.activations import ACT2FN
 from transformers.deepspeed import is_deepspeed_zero3_enabled
+from transformers.modeling_outputs import BaseModelOutput
+from transformers.modeling_utils import PreTrainedModel
+from transformers.models.wavlm.modeling_wavlm import (
+    AMSoftmaxLoss, TDNNLayer, WavLMAttention, WavLMConfig, WavLMEncoder,
+    WavLMEncoderLayer, WavLMEncoderLayerStableLayerNorm,
+    WavLMEncoderStableLayerNorm, WavLMFeatureEncoder, WavLMFeedForward,
+    WavLMForAudioFrameClassification, WavLMForCTC,
+    WavLMForSequenceClassification, WavLMForXVector, WavLMModel,
+    WavLMPositionalConvEmbedding, WavLMPreTrainedModel)
 from transformers.utils import ModelOutput
-from torch.nn import CrossEntropyLoss
-from typing import List, Tuple, Union, Optional
 
 _HIDDEN_STATES_START_POSITION = 2
 
@@ -334,7 +322,7 @@ class AdaLayerToOutWavLMEncoder(nn.Module):
             attentions=all_self_attentions,
         )
 
-class AdaWavLMPretraiedModel(WavLMPreTrainedModel):
+class AdaWavLMPretrainedModel(WavLMPreTrainedModel):
     config_class = AdaWavLMConfig
     base_model_prefix = "wavlm"
     main_input_name = "input_values"
@@ -372,7 +360,7 @@ class AdaWavLMPretraiedModel(WavLMPreTrainedModel):
         if isinstance(module, (AdaWavLMEncoder, WavLMEncoderStableLayerNorm, WavLMFeatureEncoder)):
             module.gradient_checkpointing = value
 
-class AdaWavLMModel(WavLMModel, AdaWavLMPretraiedModel):
+class AdaWavLMModel(WavLMModel, AdaWavLMPretrainedModel):
     def __init__(self, config: AdaWavLMConfig):
         super().__init__(config)
         if config.do_stable_layer_norm:
@@ -381,10 +369,10 @@ class AdaWavLMModel(WavLMModel, AdaWavLMPretraiedModel):
             self.encoder = AdaLayerToOutWavLMEncoder(config)
         else:
             self.encoder = AdaWavLMEncoder(config)
-        AdaWavLMPretraiedModel._init_weights(self, self.encoder)
+        AdaWavLMPretrainedModel._init_weights(self, self.encoder)
         
             
-class AdaWavLMForCTC(WavLMForCTC, AdaWavLMPretraiedModel):
+class AdaWavLMForCTC(WavLMForCTC, AdaWavLMPretrainedModel):
     def __init__(self, config: AdaWavLMConfig):
         if not config.use_upsampling:
             config.output_hidden_size = list(config.adapter_to_output_layer_size.values())[0]
@@ -393,7 +381,7 @@ class AdaWavLMForCTC(WavLMForCTC, AdaWavLMPretraiedModel):
         self.lm_head = nn.Linear(config.output_hidden_size, config.vocab_size)
         self.post_init()
         
-class AdaWavLMForSequenceClassification(WavLMForSequenceClassification, AdaWavLMPretraiedModel):
+class AdaWavLMForSequenceClassification(WavLMForSequenceClassification, AdaWavLMPretrainedModel):
     def __init__(self, config: AdaWavLMConfig):
         if not config.use_upsampling:
             config.output_hidden_size = list(config.adapter_to_output_layer_size.values())[0]
@@ -402,12 +390,12 @@ class AdaWavLMForSequenceClassification(WavLMForSequenceClassification, AdaWavLM
         self.projector = nn.Linear(config.output_hidden_size, config.classifier_proj_size)
         self.post_init()
         
-class AdaWavLMForXVector(WavLMForXVector, AdaWavLMPretraiedModel):
+class AdaWavLMForXVector(WavLMForXVector, AdaWavLMPretrainedModel):
     def __init__(self, config: AdaWavLMConfig):
         super().__init__(config)
         self.wavlm = AdaWavLMModel(config)
 
-class AdaWavLMForAudioFrameClassification(WavLMForAudioFrameClassification, AdaWavLMPretraiedModel):
+class AdaWavLMForAudioFrameClassification(WavLMForAudioFrameClassification, AdaWavLMPretrainedModel):
     def __init__(self, config: AdaWavLMConfig):
         super().__init__(config)
         self.wavlm = AdaWavLMModel(config)
