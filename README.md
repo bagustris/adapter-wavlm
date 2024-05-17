@@ -21,6 +21,9 @@ The following command provides an example of training in the proposed method. Pl
 ./run.sh SER
 ```
 
+Warning: it needs around three days to run on RTX 3090.
+
+
 # Experiment and Results
 <!-- ![result](https://user-images.githubusercontent.com/48460458/189800739-e711e953-9095-45d6-bdec-f509581965bb.png) -->
 
@@ -79,7 +82,9 @@ Please use the following citation for this work:
 }
 ```
 
-# Note
-The paper was uploaded to [arXiv](https://arxiv.org/abs/2212.02780) on 6 Dec 2022. 
-
-The paper was accepted for ICASSP 2023.
+# Note  
+- The paper was uploaded to [arXiv](https://arxiv.org/abs/2212.02780) on 6 Dec 2022. 
+- The paper was accepted for ICASSP 2023.
+- re-run SER with 5-fold CV for each session. New results:
+    - UA: 0.7538 +/- 0.0207
+    - WA: 0.7643 +/- 0.0274
